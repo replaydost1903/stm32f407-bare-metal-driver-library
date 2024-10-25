@@ -49,18 +49,33 @@ int main(void)
  */
 static void RCC_Init(RCC_Handle_TypeDef* osc)
 {
-	osc->sys_clk_src = SYS_CLK_SRC_HSE;
+	/*
+	 *	System Oscillator Configuration Section
+	 */
+	osc->sys_clk_src = SYS_CLK_SRC_PLL;
 	osc->hse_state = HSE_ON;
 	osc->hsi_state = HSI_OFF;
 	osc->hse_src = HSE_NOT_BYPASS;
 	osc->pll.pll_M = 4;
-	osc->pll.pll_N = 72;
-	osc->pll.pll_P = PLL_P_6;
+	osc->pll.pll_N = 168;
+	osc->pll.pll_P = PLL_P_2;
 	osc->pll.pll_Q = 4;
 	osc->pll.pll_freq = 8;
 	osc->pll.pll_src = PLL_SRC_HSE;
-	osc->pll.pll_jitter = PLL_JIT_OFF;
+	osc->pll.pll_jitter = PLL_JIT_ON;
 
+
+	if(System_Osc_Config(&r_obj) != OK)
+	{
+		Error_Handler();
+	}
+
+	/*
+	 *  System Clock Configuration Section
+	 */
+	osc->prescaler.ahb_pres = AHB_PRESCALER_1;
+	osc->prescaler.apb1_pres = APB1_PRESCALER_4;
+	osc->prescaler.apb2_pres = APB2_PRESCALER_2;
 
 	if(System_Clock_Config(&r_obj) != OK)
 	{

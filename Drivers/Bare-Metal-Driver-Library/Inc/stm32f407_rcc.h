@@ -10,6 +10,7 @@
 /*
  * @ahb_prescaler_value
  */
+#define AHB_PRESCALER_1			(0U)
 #define AHB_PRESCALER_2			(8U)
 #define AHB_PRESCALER_4			(9U)
 #define AHB_PRESCALER_8			(10U)
@@ -22,11 +23,20 @@
 /*
  * @apb1_prescaler_value
  */
+#define APB1_PRESCALER_1		(0U)
 #define APB1_PRESCALER_2		(4U)
 #define APB1_PRESCALER_4		(5U)
 #define APB1_PRESCALER_8		(6U)
 #define APB1_PRESCALER_16		(7U)
 
+/*
+ * @apb2_prescaler_value
+ */
+#define APB1_PRESCALER_1		(0U)
+#define APB2_PRESCALER_2		(4U)
+#define APB2_PRESCALER_4		(5U)
+#define APB2_PRESCALER_8		(6U)
+#define APB2_PRESCALER_16		(7U)
 
 /*
  *  @mco_mode
@@ -136,6 +146,17 @@ typedef struct
 }RCCFlagStatus;
 
 /*
+ * @system_clock_prescaler
+ */
+typedef struct
+{
+	uint8_t ahb_pres;				/*<!		@ahb_prescaler_value		!>*/
+	uint8_t apb1_pres;				/*<!		@apb2_prescaler_value		!>*/
+	uint8_t apb2_pres;				/*<!		@apb2_prescaler_value		!>*/
+
+}Sys_PresValue;
+
+/*
  * @pll_coefficient
  */
 typedef struct
@@ -161,6 +182,7 @@ typedef struct
 	uint8_t hsi_state;				/*<! 	@hsi_state 					!>*/
 	uint8_t hse_state;				/*<! 	@hse_state 					!>*/
 	PLL_Config pll;					/*<! 	@pll_coefficient 			!>*/
+	Sys_PresValue prescaler;		/*<! 	@system_clock_prescaler		!>*/
 	MCO_ClkSrc mco_out;				/*<! 	@mco_output		 			!>*/
 	RCCFlagStatus rcc_flag;			/*<! 	@rcc_int_flag	 			!>*/
 
@@ -169,6 +191,7 @@ typedef struct
 
 /* RCC -> Clock Section */
 void System_Init(void);
+LibStatusFlag System_Osc_Config(RCC_Handle_TypeDef *);
 LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *);
 void MCO_Output(RCC_Handle_TypeDef *);
 void RCC_Handler(RCC_Handle_TypeDef *);

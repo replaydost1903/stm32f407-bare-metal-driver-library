@@ -10,6 +10,10 @@
 //HSI RC Oscillator Frequency (MHz)
 const uint16_t HSI_OSC_FREQ = 16;
 
+//AHB Prescaler Value
+const uint16_t ahb_prescaler[9][2] = {{1,0},{2,8},{4,9},{8,10},{16,11},{64,12},{128,13},{256,14},{512,15}};
+const uint16_t apb_prescaler[5][2] = {{1,0},{2,4},{4,5},{8,6},{16,7}};
+
 
 //PLL_P Coefficient Calculation
 #define PLL_P_COEFF_CAL(x)		(((x / 2) - (1)))
@@ -36,9 +40,9 @@ void System_Init(void)
 
 
 /*
- * Main System Clock Configuration --> [SYSTEM_CLOCK]
+ * System Oscilattor Configuration --> [SYSTEM_CLOCK]
  */
-LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
+LibStatusFlag System_Osc_Config(RCC_Handle_TypeDef *pRCC)
 {
 	//PWR Enable
 	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
@@ -71,6 +75,8 @@ LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
 
 			//Is HSI used as a system clock
 			while((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS);
+
+			System_Clock_Freq = 16;
 
 			return OK;
 		}
@@ -367,6 +373,114 @@ void MCO_Output(RCC_Handle_TypeDef *pRCC)
 		RCC->CFGR |= (pRCC->mco_out.mco1 << RCC_CFGR_MCO1_Pos) | (pRCC->mco_out.mco2 << RCC_CFGR_MCO2_Pos);
 	}
 }
+
+/*
+ * System Oscilattor Configuration --> [SYSTEM_CLOCK]
+ */
+LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
+{
+	switch(pRCC->sys_clk_src)
+	{
+		case (SYS_CLK_SRC_HSI):
+			if(pRCC->rcc_flag.HSI_RDY == OK)
+			{
+				RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+				return OK;
+			}
+			else
+			{
+				return ERROR;
+			}
+			break;
+		case (SYS_CLK_SRC_HSE):
+			if(pRCC->rcc_flag.HSE_RDY == OK)
+			{
+				uint8_t clkAPB1,clkAPB2,clkHCLK;
+
+				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
+				{
+					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+					return OK;
+				}
+				else
+				{
+					return ERROR;
+				}
+			}
+			else
+			{
+				return ERROR;
+			}
+			break;
+		case (SYS_CLK_SRC_PLL):
+
+			if((pRCC->pll.pll_src == PLL_SRC_HSE) & (pRCC->rcc_flag.HSE_RDY == OK) & (pRCC->rcc_flag.PLL_RDY == OK))
+			{
+				uint8_t clkAPB1,clkAPB2,clkHCLK;
+
+				for(uint8_t clkArray_1=0;clkArray_1<9;clkArray_1++)
+				{
+					for(uint8_t clkArray_2=0;clkArray_2<2;clkArray_2++)
+					{
+						if(ahb_prescaler[clkArray_1][clkArray_2] == pRCC->prescaler.ahb_pres)
+						{
+							clkHCLK = ((System_Clock_Freq) / (ahb_prescaler[clkArray_1][clkArray_2-1]));
+						}
+						if(clkArray_1 < 5)
+						{
+							if(apb_prescaler[clkArray_1][clkArray_2] == pRCC->prescaler.apb1_pres)
+							{
+								clkAPB1 =  (clkHCLK / (apb_prescaler[clkArray_1][clkArray_2-1]));
+							}
+							if(apb_prescaler[clkArray_1][clkArray_2] == pRCC->prescaler.apb2_pres)
+							{
+								clkAPB2 = (clkHCLK / (apb_prescaler[clkArray_1][clkArray_2-1]));
+							}
+						}
+
+					}
+				}
+
+				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
+				{
+					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+					return OK;
+				}
+				else
+				{
+					return ERROR;
+				}
+			}
+			else if ((pRCC->pll.pll_src == PLL_SRC_HSI) & (pRCC->rcc_flag.HSI_RDY == OK) & (pRCC->rcc_flag.PLL_RDY == OK))
+			{
+				uint8_t clkAPB1,clkAPB2,clkHCLK;
+
+				clkHCLK = (System_Clock_Freq) / (pRCC->prescaler.ahb_pres);
+				clkAPB1 =  (clkHCLK / (pRCC->prescaler.apb1_pres));
+				clkAPB2 = (clkHCLK / (pRCC->prescaler.apb2_pres));
+
+				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
+				{
+					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+					return OK;
+				}
+				else
+				{
+					return ERROR;
+				}
+			}
+			else
+			{
+				return ERROR;
+			}
+			break;
+		default:
+			return ERROR;
+			break;
+	}
+	return ERROR;
+}
+
 
 /*
  *  RCC Interrupt Handler  Function

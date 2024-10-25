@@ -6,8 +6,8 @@
  */
 typedef enum
 {
-	OK,
 	ERROR,
+	OK,
 	BUSY
 
 }LibStatusFlag;
