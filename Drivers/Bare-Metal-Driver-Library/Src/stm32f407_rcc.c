@@ -11,8 +11,8 @@
 const uint16_t HSI_OSC_FREQ = 16;
 
 //AHB Prescaler Value
-const uint16_t ahb_prescaler[9][2] = {{1,0},{2,8},{4,9},{8,10},{16,11},{64,12},{128,13},{256,14},{512,15}};
-const uint16_t apb_prescaler[5][2] = {{1,0},{2,4},{4,5},{8,6},{16,7}};
+const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 
 
 //PLL_P Coefficient Calculation
@@ -417,29 +417,6 @@ LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
 			if((pRCC->pll.pll_src == PLL_SRC_HSE) & (pRCC->rcc_flag.HSE_RDY == OK) & (pRCC->rcc_flag.PLL_RDY == OK))
 			{
 				uint8_t clkAPB1,clkAPB2,clkHCLK;
-
-				for(uint8_t clkArray_1=0;clkArray_1<9;clkArray_1++)
-				{
-					for(uint8_t clkArray_2=0;clkArray_2<2;clkArray_2++)
-					{
-						if(ahb_prescaler[clkArray_1][clkArray_2] == pRCC->prescaler.ahb_pres)
-						{
-							clkHCLK = ((System_Clock_Freq) / (ahb_prescaler[clkArray_1][clkArray_2-1]));
-						}
-						if(clkArray_1 < 5)
-						{
-							if(apb_prescaler[clkArray_1][clkArray_2] == pRCC->prescaler.apb1_pres)
-							{
-								clkAPB1 =  (clkHCLK / (apb_prescaler[clkArray_1][clkArray_2-1]));
-							}
-							if(apb_prescaler[clkArray_1][clkArray_2] == pRCC->prescaler.apb2_pres)
-							{
-								clkAPB2 = (clkHCLK / (apb_prescaler[clkArray_1][clkArray_2-1]));
-							}
-						}
-
-					}
-				}
 
 				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
 				{
