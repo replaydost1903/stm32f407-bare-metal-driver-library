@@ -12,11 +12,13 @@
 
 //Peripheral Data Type
 RCC_Handle_TypeDef r_obj = {0};
+GPIOInitTypeDef g_obj = {0};
 
 //Function Declarations
 static void LED_Config(void);
 static void LED_Toggle(void);
 static void RCC_Init(RCC_Handle_TypeDef*);
+static void GPIO_Init(void);
 void Error_Handler(void);
 
 //Extern
@@ -25,7 +27,6 @@ extern uint32_t System_Clock_Freq;
 
 int main(void)
 {
-
 	/*System Config*/
 	System_Init();
 
@@ -34,6 +35,9 @@ int main(void)
 
 	/*MCO Config*/
 	MCO_Output(&r_obj);
+
+	/*GPIO Init*/
+	GPIO_Init();
 
 	LED_Config();
 
@@ -99,7 +103,13 @@ static void LED_Toggle(void)
 	for(uint32_t i=0;i<1000000;i++);
 }
 
+static void GPIO_Init(void)
+{
+	g_obj.Pin = GPIO_PIN_4 | GPIO_PIN_10;
 
+	GPIO_Config(GPIOA, &g_obj);
+
+}
 
 
 

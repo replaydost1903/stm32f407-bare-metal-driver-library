@@ -11,8 +11,8 @@
 const uint16_t HSI_OSC_FREQ = 16;
 
 //AHB Prescaler Value
-const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
-const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
+//const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+//const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 
 
 //PLL_P Coefficient Calculation
@@ -323,7 +323,7 @@ void MCO_Output(RCC_Handle_TypeDef *pRCC)
 		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
 		// PA8 AF Mode
-		GPIOA->MODER |= GPIO_MODE_AF << GPIO_MODER_MODER8_Pos;
+		GPIOA->MODER |= 0x02 << GPIO_MODER_MODER8_Pos;
 
 		// PA8 AF0 Config
 		GPIOA->AFR[1] |= (0U << GPIO_AFRH_AFSEL8_Pos);
@@ -340,7 +340,7 @@ void MCO_Output(RCC_Handle_TypeDef *pRCC)
 		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
 
 		// PC9 AF Mode
-		GPIOC->MODER |= GPIO_MODE_AF << GPIO_MODER_MODER9_Pos;
+		GPIOC->MODER |= 0x02 << GPIO_MODER_MODER9_Pos;
 
 		// PC9 AF0 Config
 		GPIOC->AFR[1] |= (0U << GPIO_AFRH_AFSEL9_Pos);
@@ -359,8 +359,8 @@ void MCO_Output(RCC_Handle_TypeDef *pRCC)
 		RCC->AHB1ENR |= (RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN);
 
 		// PA8 & PC9 AF Mode
-		GPIOA->MODER |= (GPIO_MODE_AF << GPIO_MODER_MODER8_Pos);
-		GPIOC->MODER |= (GPIO_MODE_AF << GPIO_MODER_MODER9_Pos);
+		GPIOA->MODER |= (0x02 << GPIO_MODER_MODER8_Pos);
+		GPIOC->MODER |= (0x02 << GPIO_MODER_MODER9_Pos);
 
 		// PA8 & PC9 AF0 Config
 		GPIOA->AFR[1] |= (0U << GPIO_AFRH_AFSEL8_Pos);
