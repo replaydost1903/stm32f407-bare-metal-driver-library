@@ -2,6 +2,8 @@
 
 /*
  *	Alternate Function ve Interrupt Ayarı Kaldı
+ *	Pinlerin değerleri registerlara yazılmadan önce
+ *	ilgili pinin bit alanı temizlenicek ondan sonra yazılacak
  */
 void GPIO_Config(GPIO_TypeDef *pGPIO , GPIOInitTypeDef *pInit)
 {
@@ -12,17 +14,20 @@ void GPIO_Config(GPIO_TypeDef *pGPIO , GPIOInitTypeDef *pInit)
 		shift_pos = (0x1U << curr_pos);
 		mask_pos = (pInit->Pin & shift_pos);
 
-		if(shift_pos == mask_pos)	//pin matched
+		if(((mask_pos & pInit->Pin) >> curr_pos))	//pin matched
 		{
 			/*  Input and Analog Pin Configuration */
 
 			// pull config
-			temp = (pInit->Pull << (2 * curr_pos));
-			pGPIO->PUPDR |= temp;
+			temp &= ~(0x3U << (2 * curr_pos));
+			temp |= (pInit->Pull << (2 * curr_pos));
+			pGPIO->PUPDR = temp;
 
-			// moder config
-			temp = ((pInit->Mode & GPIO_MODE)  << (curr_pos * 2));
-			pGPIO->MODER |= temp;
+			// mode config
+			temp = 0;
+			temp &= ~(0x3U << (2 * curr_pos));
+			temp |= ((pInit->Mode & GPIO_MODE)  << (curr_pos * 2));
+			pGPIO->MODER = temp;
 
 			/*  Output Pin Configuration */
 			if(((pInit->Mode & MODE_OUTPUT) == MODE_OUTPUT) || ((pInit->Mode & MODE_AF) == MODE_AF))

@@ -384,7 +384,8 @@ LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
 		case (SYS_CLK_SRC_HSI):
 			if(pRCC->rcc_flag.HSI_RDY == OK)
 			{
-				RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+				RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) |\
+						(pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
 				return OK;
 			}
 			else
@@ -399,7 +400,8 @@ LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
 
 				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
 				{
-					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) |\
+							(pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
 					return OK;
 				}
 				else
@@ -420,7 +422,8 @@ LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
 
 				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
 				{
-					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) |\
+							(pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
 					return OK;
 				}
 				else
@@ -438,7 +441,8 @@ LibStatusFlag System_Clock_Config(RCC_Handle_TypeDef *pRCC)
 
 				if((clkAPB1 <= 42) & (clkAPB2 <= 84))
 				{
-					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) | (pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
+					RCC->CFGR |= (pRCC->prescaler.ahb_pres << RCC_CFGR_HPRE_Pos) | (pRCC->prescaler.apb1_pres << RCC_CFGR_PPRE1_Pos) |\
+							(pRCC->prescaler.apb2_pres << RCC_CFGR_PPRE2_Pos);
 					return OK;
 				}
 				else

@@ -1,13 +1,9 @@
 #include "main.h"
 
 
-
-
 /****************************************************
  ******APB1 APB2 AHB Clock Hızları Ayarlanılacak*****
  ****************************************************/
-
-
 
 
 //Peripheral Data Type
@@ -45,7 +41,6 @@ int main(void)
 	{
 		LED_Toggle();
 	}
-
 }
 
 /*
@@ -105,10 +100,12 @@ static void LED_Toggle(void)
 
 static void GPIO_Init(void)
 {
-	g_obj.Pin = GPIO_PIN_4 | GPIO_PIN_10;
+	g_obj.Pin = GPIO_PIN_0 | GPIO_PIN_5 | GPIO_PIN_15;
+	g_obj.Mode = GPIO_MODE_OUTPUT_OD;
+	g_obj.Pull = GPIO_PULL_UP;
+	g_obj.Speed = GPIO_SPEED_VERY_HIGH;
 
 	GPIO_Config(GPIOA, &g_obj);
-
 }
 
 
