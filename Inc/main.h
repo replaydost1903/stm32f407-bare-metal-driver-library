@@ -10,7 +10,7 @@ typedef enum
 	OK,
 	BUSY
 
-}LibStatusFlag;
+}StatusFlagTypeDef;
 
 
 /*

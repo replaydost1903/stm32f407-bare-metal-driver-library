@@ -4,13 +4,13 @@
  * 		Interrupt Handler
  */
 
-extern RCC_Handle_TypeDef r_obj;
+//extern RCC_SysClkInitTypeDef r_obj;
 
 
-void RCC_IRQHandler(void)
-{
-	RCC_Handler(&r_obj);
-}
+//void RCC_IRQHandler(void)
+//{
+//	//RCC_Handler(&r_obj);
+//}
 
 
 /*
