@@ -5,9 +5,10 @@
  * 	Caution This function is take only a RCC_SysClkInitTypeDef type variable
  */
 
-#define __PLL_COEFF_CONTROL__(x)			(x->PLL.PLL_M >= 2) & (x->PLL.PLL_M <= 63)		   	& \
-											(x->PLL.PLL_N <= 432) & (x->PLL.PLL_N >= 50) 		& \
-											((x->PLL.PLL_P == 2) | (x->PLL.PLL_P == 4) | (x->PLL.PLL_P == 6) | (x->PLL.PLL_P == 8))
+#define __PLL_COEFF_CONTROL__(x)			(uint32_t)((x->PLL.M >= 2) & (x->PLL.M <= 63) 					& \
+											(x->PLL.N <= 432) & (x->PLL.N >= 50) 							& \
+											((x->PLL.P == PLL_P_DIV2) | (x->PLL.P == PLL_P_DIV6) 			| \
+											 (x->PLL.P == PLL_P_DIV4) | (x->PLL.P == PLL_P_DIV8)))
 
 /*
  * HSI RC Oscillator Frequency (MHz)
@@ -32,7 +33,7 @@ static void RCC_HSEConfig(uint32_t,uint32_t);
 /*
  * This function can be used by externing it to any source file
  */
-uint32_t System_Clock_Freq = 0;
+double System_Clock_Freq = 0;
 
 /*
  * This function must be the first function called in the main block
@@ -56,6 +57,13 @@ void System_Init(void)
  */
 StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 {
+
+	/* Check Null pointer */
+	if (pRCC_SysClk == NULL)
+    {
+	   return ERROR;
+  	}
+
 	/* PWR Enable */
 	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
 
@@ -65,179 +73,169 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 	/* FLASH Latency */
 	FLASH->ACR = FLASH_ACR_LATENCY_5WS;
 
+	/************************* 1.HSI selected as system clock ****************************/
 	if(pRCC_SysClk->SYSCLKSource == SYSCLK_SRC_HSI)
 	{
 		RCC_HSIConfig(pRCC_SysClk->HSICalibrationValue);
 
-		__SYS_CLK_HSI_SELECT__;
+		__SYS_CLK_HSI_SELECT__();
 
 		return OK;
 	}
-	else if(pRCC_SysClk->SYSCLKSource == SYSCLK_SRC_HSE)
+	/************************* 2.HSE selected as system clock ****************************/
+	if(pRCC_SysClk->SYSCLKSource == SYSCLK_SRC_HSE)
 	{
 		RCC_HSEConfig(pRCC_SysClk->HSEBypass,pRCC_SysClk->HSECSSONState);
 
-		__SYS_CLK_HSE_SELECT__;
+		__SYS_CLK_HSE_SELECT__();
 
 		return OK;
 	}
-//	else if(pRCC_SysClk->SYSCLKSource == SYS_CLK_SRC_PLL)
-//	{
-//		if(pRCC_SysClk->PLL.Source == PLL_SRC_HSE)
-//		{
-//			//VCO Limit Control
-//			uint32_t vco_in,vco_out;
-//
-//			//HSE Enable
-//			RCC_HSEConfig(pRCC_SysClk->HSEBypass,pRCC_SysClk->HSECSSONState);
-//
-//			//PLL Coefficient and VCO Limit Control
-//			if(__PLL_COEFF_CONTROL__(pRCC_SysClk))
-//			{
-//				//PLL Ready Interrupt Enable
-//				RCC->CIR |= RCC_CIR_PLLRDYIE;
-//
-//				//It is recommended to select a frequency of 2 MHz to limit PLL jitter ---> RM Page 227
-//				if(pRCC_SysClk->PLL.Jitter == PLL_JIT_ON)
-//				{
-//					//Calculates limit condition value and system oscillator frequency
-//					vco_in = (uint32_t)2;
-//					vco_out = (uint32_t)((uint32_t)vco_in * (uint32_t)pRCC->pll.pll_N);
-//					System_Clock_Freq = (uint32_t)((uint32_t)vco_out / (uint32_t)(pRCC->pll.pll_P));
-//
-//					//Before Calculate Check VCOUT Limit
-//					if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))	//With PLL Jitter Configuration
-//					{
-//						//PLLM Calculated
-//						pRCC_SysClk->PLL.M = (uint32_t)((uint32_t)pRCC->pll.pll_freq / (uint32_t)2); 	//VCO --> 2MHz
-//
-//				        /* Configure the main PLL clock source, multiplication and division factors. */
-//						RCC->PLLCFGR = (uint32_t)(pRCC->pll.pll_M << RCC_PLLCFGR_PLLM_Pos) | (pRCC->pll.pll_N << RCC_PLLCFGR_PLLN_Pos) | \
-//								 (PLL_P_COEFF_CAL(pRCC->pll.pll_P) << RCC_PLLCFGR_PLLP_Pos) | (RCC_PLLCFGR_PLLSRC_HSE);
-//
-//						__PLL_ENABLE__;
-//
-//						__SYS_CLK_PLL_SELECT__;
-//
-//						//Last Regulated System Master Clock Value
-//						vco_in = ((uint32_t)(pRCC->pll.pll_freq / (uint32_t)(RCC->PLLCFGR & 0x3F)));
-//						vco_out =  (uint32_t)((uint32_t)vco_in * (uint32_t)((RCC->PLLCFGR & 0x7FC0) >> 6U));
-//						System_Clock_Freq = vco_out / (PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
-//
-//						return OK;
-//					}
-//					else
-//					{
-//						return ERROR;
-//					}
-//				}
-//				else if(pRCC_SysClk->PLL.Jitter == PLL_JIT_OFF)			//Not PLL Jitter Configuration
-//				{
-//					vco_in = (uint32_t)((uint32_t)pRCC->pll.pll_freq / (uint32_t)pRCC->pll.pll_M);
-//					vco_out = (uint32_t)((uint32_t)vco_in * (uint32_t)pRCC->pll.pll_N);
-//					System_Clock_Freq = (uint32_t)((uint32_t)vco_out / (uint32_t)pRCC->pll.pll_P);
-//
-//					//Before Calculate Check VCOUT Limit
-//					if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))
-//					{
-//				        /* Configure the main PLL clock source, multiplication and division factors. */
-//						RCC->PLLCFGR = (uint32_t)(pRCC->pll.pll_M << RCC_PLLCFGR_PLLM_Pos) | (pRCC->pll.pll_N << RCC_PLLCFGR_PLLN_Pos) | \
-//								 (PLL_P_COEFF_CAL(pRCC->pll.pll_P) << RCC_PLLCFGR_PLLP_Pos) | (RCC_PLLCFGR_PLLSRC_HSE);
-//
-//						//PLL Enable
-//						RCC->CR |= RCC_CR_PLLON;
-//
-//						//Is PLL Ready?
-//						while((RCC->CR & RCC_CR_PLLRDY) != RCC_CR_PLLRDY);
-//
-//						//Is PLL used as a system clock
-//						RCC->CFGR |= (RCC_CFGR_SW_PLL << RCC_CFGR_SW_Pos);
-//
-//						//Is PLL used as a system clock
-//						while(!(RCC->CFGR & RCC_CFGR_SWS_1));
-//
-//						//Last Regulated System Master Clock Value
-//						vco_in = ((uint32_t)(pRCC->pll.pll_freq / (uint32_t)(RCC->PLLCFGR & 0x3F)));
-//						vco_out =  (uint32_t)((uint32_t)vco_in * (uint32_t)((RCC->PLLCFGR & 0x7FC0) >> 6U));
-//						System_Clock_Freq = vco_out / (PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
-//
-//						return OK;
-//					}
-//					else
-//					{
-//						return ERROR;
-//					}
-//				}
-//			}
-//			else if((pRCC->pll.pll_src == PLL_SRC_HSE) & (pRCC->hse_state == HSE_OFF))
-//			{
-//				/*
-//				 * 	TODO
-//				 */
-//			}
-//		}
-//		else if((pRCC->pll.pll_src == PLL_SRC_HSI) & (pRCC->hsi_state == HSI_ON))
-//		{
-//			//HSI Ready Interrupt Enable
-//			RCC->CIR |= RCC_CIR_HSIRDYIE;
-//
-//			//PLL Ready Interrupt Enable
-//			RCC->CIR |= RCC_CIR_PLLRDYIE;
-//
-//			/************************************
-//			 * 		  HSI ENABLE SECTION		*
-//			 ***********************************/
-//			//HSI Enable
-//			RCC->CR |= RCC_CR_HSION;
-//
-//			//Is HSI Ready?
-//			while((RCC->CR & RCC_CR_HSIRDY) != RCC_CR_HSIRDY);
-//
-//			//HSI Calibrasyonu daha sonra yapılacak !!!
-//
-//			//VCO Limit Control
-//			uint32_t vco_in,vco_out;
-//
-//			//RC Oscillator Freq
-//			pRCC->pll.pll_freq = HSI_OSC_FREQ;
-//
-//			vco_in = (uint32_t)((uint32_t)pRCC->pll.pll_freq / (uint32_t)pRCC->pll.pll_M);
-//			vco_out = (uint32_t)((uint32_t)vco_in * (uint32_t)pRCC->pll.pll_N);
-//			System_Clock_Freq = (uint32_t)((uint32_t)vco_out / (uint32_t)pRCC->pll.pll_P);
-//
-//			//Before Calculate Check VCOUT Limit
-//			if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))
-//			{
-//		        /* Configure the main PLL clock source, multiplication and division factors. */
-//				RCC->PLLCFGR = (uint32_t)(pRCC->pll.pll_M << RCC_PLLCFGR_PLLM_Pos) | (pRCC->pll.pll_N << RCC_PLLCFGR_PLLN_Pos) | \
-//						 (PLL_P_COEFF_CAL(pRCC->pll.pll_P) << RCC_PLLCFGR_PLLP_Pos) | (RCC_PLLCFGR_PLLSRC_HSI);
-//
-//				//PLL Enable
-//				RCC->CR |= RCC_CR_PLLON;
-//
-//				//Is PLL Ready?
-//				while((RCC->CR & RCC_CR_PLLRDY) != RCC_CR_PLLRDY);
-//
-//				//Is PLL used as a system clock
-//				RCC->CFGR |= (RCC_CFGR_SW_PLL << RCC_CFGR_SW_Pos);
-//
-//				//Is PLL used as a system clock
-//				while(!(RCC->CFGR & RCC_CFGR_SWS_1));
-//
-//				//Last Regulated System Master Clock Value
-//				vco_in = ((uint32_t)(pRCC->pll.pll_freq / (uint32_t)(RCC->PLLCFGR & 0x3F)));
-//				vco_out =  (uint32_t)((uint32_t)vco_in * (uint32_t)((RCC->PLLCFGR & 0x7FC0) >> 6U));
-//				System_Clock_Freq = vco_out / (PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
-//
-//				return OK;
-//			}
-//			else
-//			{
-//				return ERROR;
-//			}
-//
-//		}
-//	}
+	/************************* 3.PLL selected as system clock ****************************/
+	if(pRCC_SysClk->SYSCLKSource == SYSCLK_SRC_PLL)
+	{
+		if(pRCC_SysClk->PLL.Source == PLL_SRC_HSE)
+		{
+			//VCO Limit Control
+			double vco_in,vco_out;
+
+			//HSE Enable
+			RCC_HSEConfig(pRCC_SysClk->HSEBypass,pRCC_SysClk->HSECSSONState);
+
+			//PLL Coefficient and VCO Limit Control
+			if(__PLL_COEFF_CONTROL__(pRCC_SysClk))
+			{
+				//PLL Ready Interrupt Enable
+				RCC->CIR |= RCC_CIR_PLLRDYIE;
+
+				//It is recommended to select a frequency of 2 MHz to limit PLL jitter ---> RM Page 227
+				if(pRCC_SysClk->PLL.Jitter == PLL_JIT_ON)
+				{
+					//Calculates limit condition value and system oscillator frequency
+					vco_in = 2;
+
+					vco_out = (vco_in * (double)pRCC_SysClk->PLL.N);
+
+					System_Clock_Freq = (vco_out / (double)(PLL_P_COEFF_CAL_R(pRCC_SysClk->PLL.P)));
+
+					//Before Calculate Check VCOUT Limit
+					if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))	//With PLL Jitter Configuration
+					{
+						//PLLM Calculated
+						pRCC_SysClk->PLL.M = (uint32_t)((double)pRCC_SysClk->PLL.HSEFreq / vco_in); 	//VCO --> 2MHz
+
+				        /* Configure the main PLL clock source, multiplication and division factors. */
+						RCC->PLLCFGR = (uint32_t)(pRCC_SysClk->PLL.M << RCC_PLLCFGR_PLLM_Pos) | \
+												 (pRCC_SysClk->PLL.N << RCC_PLLCFGR_PLLN_Pos) | \
+												 (pRCC_SysClk->PLL.P << RCC_PLLCFGR_PLLP_Pos) | \
+												 (RCC_PLLCFGR_PLLSRC_HSE);
+
+						__PLL_ENABLE__();
+
+						__SYS_CLK_PLL_SELECT__();
+
+						//Last Regulated System Master Clock Value
+						vco_in = (((double)pRCC_SysClk->PLL.HSEFreq / (double)(RCC->PLLCFGR & 0x3F)));
+
+						vco_out =  ((double)vco_in * (double)((RCC->PLLCFGR & 0x7FC0) >> 6U));
+
+						System_Clock_Freq = (vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U))));
+
+						return OK;
+					}
+					else
+					{
+						return ERROR;
+					}
+				}
+				else if(pRCC_SysClk->PLL.Jitter == PLL_JIT_OFF)			//Not PLL Jitter Configuration
+				{
+					vco_in = ((double)pRCC_SysClk->PLL.HSEFreq / (double)pRCC_SysClk->PLL.M);
+
+					vco_out = ((double)vco_in * (double)pRCC_SysClk->PLL.N);
+
+					System_Clock_Freq = ((double)vco_out / (double)PLL_P_COEFF_CAL_R(pRCC_SysClk->PLL.P));
+
+					//Before Calculate Check VCOUT Limit
+					if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))
+					{
+				        /* Configure the main PLL clock source, multiplication and division factors. */
+						RCC->PLLCFGR = (uint32_t)(pRCC_SysClk->PLL.M << RCC_PLLCFGR_PLLM_Pos) 	|\
+												 (pRCC_SysClk->PLL.N << RCC_PLLCFGR_PLLN_Pos) 	|\
+												 ((pRCC_SysClk->PLL.P) << RCC_PLLCFGR_PLLP_Pos) |\
+												 (RCC_PLLCFGR_PLLSRC_HSE);
+
+						__PLL_ENABLE__();
+
+						__SYS_CLK_PLL_SELECT__();
+
+						//Last Regulated System Master Clock Value
+						vco_in = (((double)pRCC_SysClk->PLL.HSEFreq / (double)(RCC->PLLCFGR & 0x3F)));
+
+						vco_out =  ((double)vco_in * (double)((RCC->PLLCFGR & 0x7FC0) >> 6U));
+
+						System_Clock_Freq = (double)vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
+
+						return OK;
+					}
+					else
+					{
+						return ERROR;
+					}
+				}
+			}
+			else
+			{
+				return ERROR;
+			}
+		}
+		else if((pRCC_SysClk->PLL.Source == PLL_SRC_HSI))
+		{
+			//HSI Ready Interrupt Enable
+			RCC->CIR |= RCC_CIR_HSIRDYIE;
+
+			//PLL Ready Interrupt Enable
+			RCC->CIR |= RCC_CIR_PLLRDYIE;
+
+			__HSI_ENABLE__();
+
+			//VCO Limit Control
+			uint32_t vco_in,vco_out;
+
+			vco_in = (uint32_t)((uint32_t)(HSI_OSC_FREQ) / (uint32_t)pRCC_SysClk->PLL.M);
+
+			vco_out = (uint32_t)((uint32_t)vco_in * (uint32_t)pRCC_SysClk->PLL.N);
+
+			System_Clock_Freq = (uint32_t)((uint32_t)vco_out / (uint32_t)PLL_P_COEFF_CAL_R(pRCC_SysClk->PLL.P));
+
+			//Before Calculate Check VCOUT Limit
+			if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))
+			{
+		        /* Configure the main PLL clock source, multiplication and division factors. */
+				RCC->PLLCFGR = (uint32_t)(pRCC_SysClk->PLL.M << RCC_PLLCFGR_PLLM_Pos) 	|\
+										 (pRCC_SysClk->PLL.N << RCC_PLLCFGR_PLLN_Pos) 	|\
+										 ((pRCC_SysClk->PLL.P) << RCC_PLLCFGR_PLLP_Pos) |\
+										 (RCC_PLLCFGR_PLLSRC_HSI);
+
+				__PLL_ENABLE__();
+
+				__SYS_CLK_PLL_SELECT__();
+
+				//Last Regulated System Master Clock Value
+				vco_in = ((uint32_t)((HSI_OSC_FREQ) / (uint32_t)(RCC->PLLCFGR & 0x3F)));
+
+				vco_out =  (uint32_t)((uint32_t)vco_in * (uint32_t)((RCC->PLLCFGR & 0x7FC0) >> 6U));
+
+				System_Clock_Freq = vco_out / (PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
+
+				return OK;
+			}
+			else
+			{
+				return ERROR;
+			}
+		}
+	}
 	return ERROR;
 }
 
@@ -395,95 +393,90 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 ///*
 // *  RCC Interrupt Handler  Function
 // */
-//void RCC_Handler(RCC_Handle_TypeDef *pRCC)
-//{
-//	if((RCC->CIR & RCC_CIR_LSIRDYF) == RCC_CIR_LSIRDYF)
-//	{
-//		/* Update Flag State */
-//		pRCC->rcc_flag.LSI_RDY = OK;
-//
-//		/* Clear Flag State */
-//		RCC->CIR |= RCC_CIR_LSIRDYC;
-//	}
-//	if((RCC->CIR & RCC_CIR_LSERDYF) == RCC_CIR_LSERDYF)
-//	{
-//		/* Update Flag State */
-//		pRCC->rcc_flag.LSE_RDY = OK;
-//
-//		/* Clear Flag State */
-//		RCC->CIR |= RCC_CIR_LSERDYC;
-//	}
-//	if((RCC->CIR & RCC_CIR_HSIRDYF) == RCC_CIR_HSIRDYF)
-//	{
-//		/* Update Flag State */
-//		pRCC->rcc_flag.HSI_RDY = OK;
-//
-//		/* Clear Flag State */
-//		RCC->CIR |= RCC_CIR_HSIRDYC;
-//	}
-//	if((RCC->CIR & RCC_CIR_HSERDYF) == RCC_CIR_HSERDYF)
-//	{
-//		/* Update Flag State */
-//		pRCC->rcc_flag.HSE_RDY = OK;
-//
-//		/* Clear Flag State */
-//		RCC->CIR |= RCC_CIR_HSERDYC;
-//	}
-//	if((RCC->CIR & RCC_CIR_PLLRDYF) == RCC_CIR_PLLRDYF)
-//	{
-//		/* Update Flag State */
-//		pRCC->rcc_flag.PLL_RDY = OK;
-//
-//		/* Clear Flag State */
-//		RCC->CIR |= RCC_CIR_PLLRDYC;
-//	}
-//	if((RCC->CIR & RCC_CIR_PLLI2SRDYF) == RCC_CIR_PLLI2SRDYF)
-//	{
-//		/* Update Flag State */
-//		pRCC->rcc_flag.PLLI2S_RDY = OK;
-//
-//		/* Clear Flag State */
-//		RCC->CIR |= RCC_CIR_PLLI2SRDYC;
-//	}
-//}
+void RCC_Handler(RCC_SysClkInitTypeDef *pRCC)
+{
+	if((RCC->CIR & RCC_CIR_LSIRDYF) == RCC_CIR_LSIRDYF)
+	{
+		/* Update Flag State */
+		pRCC->OscState.LSI_RDY = OK;
+
+		/* Clear Flag State */
+		RCC->CIR |= RCC_CIR_LSIRDYC;
+	}
+	if((RCC->CIR & RCC_CIR_LSERDYF) == RCC_CIR_LSERDYF)
+	{
+		/* Update Flag State */
+		pRCC->OscState.LSE_RDY = OK;
+
+		/* Clear Flag State */
+		RCC->CIR |= RCC_CIR_LSERDYC;
+	}
+	if((RCC->CIR & RCC_CIR_HSIRDYF) == RCC_CIR_HSIRDYF)
+	{
+		/* Update Flag State */
+		pRCC->OscState.HSI_RDY = OK;
+
+		/* Clear Flag State */
+		RCC->CIR |= RCC_CIR_HSIRDYC;
+	}
+	if((RCC->CIR & RCC_CIR_HSERDYF) == RCC_CIR_HSERDYF)
+	{
+		/* Update Flag State */
+		pRCC->OscState.HSE_RDY = OK;
+
+		/* Clear Flag State */
+		RCC->CIR |= RCC_CIR_HSERDYC;
+	}
+	if((RCC->CIR & RCC_CIR_PLLRDYF) == RCC_CIR_PLLRDYF)
+	{
+		/* Update Flag State */
+		pRCC->OscState.PLL_RDY = OK;
+
+		/* Clear Flag State */
+		RCC->CIR |= RCC_CIR_PLLRDYC;
+	}
+	if((RCC->CIR & RCC_CIR_PLLI2SRDYF) == RCC_CIR_PLLI2SRDYF)
+	{
+		/* Update Flag State */
+		pRCC->OscState.PLLI2S_RDY = OK;
+
+		/* Clear Flag State */
+		RCC->CIR |= RCC_CIR_PLLI2SRDYC;
+	}
+}
 
 
 static void RCC_HSIConfig(uint32_t HSICalibrationValue)
 {
 	//HSI Ready Interrupt Enable
-	//RCC->CIR |= RCC_CIR_HSIRDYIE;
+	RCC->CIR |= RCC_CIR_HSIRDYIE;
 
-	__HSI_ENABLE__;
+	RCC->CR  |= (HSICalibrationValue << RCC_CR_HSITRIM_Pos);
 
-	/*********************************************
-	 * 	HSI Calibrasyonu daha sonra yapılacak !!!
-	 *********************************************/
+	__HSI_ENABLE__();
+
 }
 static void RCC_HSEConfig(uint32_t RCC_HSEBypass,uint32_t RCC_HSECSSONState)
 {
 	//HSE Ready Interrupt Enable
-	//RCC->CIR |= RCC_CIR_HSERDYIE;
+	RCC->CIR |= RCC_CIR_HSERDYIE;
 
-	if(RCC_HSECSSONState == HSE_CSSON_ENABLE)
+	//HSE Clock BYPASS State ON/OFF
+	RCC->CR |= RCC_HSEBypass;
+
+	if(RCC_HSECSSONState == HSE_CSSON_ON)
 	{
+		__HSE_ENABLE__();
+
 		//CSSON for Active HSE
 		RCC->CR |= RCC_CR_CSSON;
-
-		//HSE Clock BYPASS State ON/OFF
-		RCC->CR |= RCC_HSEBypass;
-
-		__HSE_ENABLE__;
 
 		//CSSON for Active HSE
 		while((RCC->CR & RCC_CR_CSSON) != RCC_CR_CSSON);
 	}
-	else if(RCC_HSECSSONState == HSE_CSSON_DISABLE)
+	else if(RCC_HSECSSONState == HSE_CSSON_OFF)
 	{
-		//HSE Clock BYPASS State ON/OFF
-		RCC->CR |= RCC_HSEBypass;
-
-		__HSE_ENABLE__;
-
+		__HSE_ENABLE__();
 	}
 }
 

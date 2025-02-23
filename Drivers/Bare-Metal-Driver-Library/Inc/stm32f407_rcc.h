@@ -3,41 +3,35 @@
 
 #include "main.h"
 
-#define __SYS_CLK_HSI_SELECT__							do														\
+#define __SYS_CLK_HSI_SELECT__()						do														\
 														{														\
 															RCC->CFGR |= RCC_CFGR_SW_HSI;						\
 														}while((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS);
 
-#define __SYS_CLK_HSE_SELECT__							do														\
+#define __SYS_CLK_HSE_SELECT__()						do														\
 														{														\
 															RCC->CFGR |= RCC_CFGR_SW_HSE;						\
 														}while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_0);
 
-#define __SYS_CLK_PLL_SELECT__							do														\
+#define __SYS_CLK_PLL_SELECT__()						do														\
 														{														\
 															RCC->CFGR |= (RCC_CFGR_SW_PLL << RCC_CFGR_SW_Pos);	\
 														}while(!(RCC->CFGR & RCC_CFGR_SWS_1));
 
-#define __HSI_ENABLE__									do														\
+#define __HSI_ENABLE__()								do														\
 														{														\
-															RCC->CR |= RCC_CR_HSION;						\
+															RCC->CR |= RCC_CR_HSION;							\
 														}while((RCC->CR & RCC_CR_HSIRDY) != RCC_CR_HSIRDY);
 
-#define __HSE_ENABLE__									do														\
+#define __HSE_ENABLE__()								do														\
 														{														\
 															RCC->CR |= RCC_CR_HSEON;							\
 														}while((RCC->CR & RCC_CR_HSERDY) != RCC_CR_HSERDY);
 
-#define __PLL_ENABLE__									do														\
+#define __PLL_ENABLE__()								do														\
 														{														\
 															RCC->CR |= RCC_CR_PLLON;							\
 														}while((RCC->CR & RCC_CR_PLLRDY) != RCC_CR_PLLRDY);
-
-
-///*
-// *  Maximumu PLLP,PLLQ,PLLM,PLLN değerleri define şeklinde tanımlanacak
-// */
-//#define PLLQ_MAX			(123U)			// -> example !!!
 
 
 /*
@@ -52,14 +46,14 @@
  * @ref RCC_HSE_SRC
  */
 
-#define HSE_NOT_BYPASS						(0U)
+#define HSE_NOT_BYPASS						(0x00000000U)
 #define HSE_BYPASS							(RCC_CR_HSEBYP)
 
 /*
  * @ref RCC_HSE_CSSON
  */
-#define HSE_CSSON_ENABLE					(RCC_CR_CSSON)
-#define HSE_CSSON_DISABLE					(~RCC_CR_CSSON)
+#define HSE_CSSON_ON						(RCC_CR_CSSON)
+#define HSE_CSSON_OFF						(0x00000000U)
 
 /*
  * @ref RCC_PLL_SRC
@@ -70,34 +64,34 @@
 /*
  * @ref RCC_PLLQ_DIV
  */
-#define PLL_Q_DIV2							(0x2 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV3							(0x3 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV4							(0x4 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV5							(0x5 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV6							(0x6 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV7							(0x7 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV8							(0x8 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV9							(0x9 << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV10							(0xA << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV11							(0xB << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV12							(0xC << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV13							(0xD << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV14							(0xE << RCC_PLLCFGR_PLLQ_Pos)
-#define PLL_Q_DIV15							(0xF << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV2							(0x2U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV3							(0x3U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV4							(0x4U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV5							(0x5U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV6							(0x6U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV7							(0x7U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV8							(0x8U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV9							(0x9U << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV10							(0xAU << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV11							(0xBU << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV12							(0xCU << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV13							(0xDU << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV14							(0xEU << RCC_PLLCFGR_PLLQ_Pos)
+#define PLL_Q_DIV15							(0xFU << RCC_PLLCFGR_PLLQ_Pos)
 
 /*
  * @ref RCC_PLLP_DIV
  */
-#define PLL_P_DIV2							(0U)
-#define PLL_P_DIV4							(0x01 << RCC_PLLCFGR_PLLP_Pos)
-#define PLL_P_DIV6							(0x02 << RCC_PLLCFGR_PLLP_Pos)
-#define PLL_P_DIV8							(0x03 << RCC_PLLCFGR_PLLP_Pos)
+#define PLL_P_DIV2							(0x00000000U)
+#define PLL_P_DIV4							(0x01U << RCC_PLLCFGR_PLLP_Pos)
+#define PLL_P_DIV6							(0x02U << RCC_PLLCFGR_PLLP_Pos)
+#define PLL_P_DIV8							(0x03U << RCC_PLLCFGR_PLLP_Pos)
 
 /*
  * @ref RCC_PLL_JITTER
  */
-#define PLL_JITTER_ENABLE					(1U)
-#define PLL_JITTER_DISABLE					(~PLL_JITTER_ENABLE)
+#define PLL_JITTER_OFF						(0U)
+#define PLL_JITTER_ON						(1U)
 
 
 
@@ -232,57 +226,67 @@ typedef struct
 
 	uint8_t RESERVED			:2;
 
-}RCC_StatusTypeDef;
+}RCC_OscStatusTypeDef;
 
 /*
  * @ref RCC_PLL_CONFIG
  */
 typedef struct
 {
-	uint32_t Source;						/*!< This determines the source of the PLL.
-	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_SRC.      				*/
+	uint32_t Source;						/*!< This determines the source of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_SRC.      						*/
 
-	uint32_t Q;								/*!< This determines the division factor Q of the PLL.
-	                                      	  	  	  This parameter can be a value of @ref RCC_PLLQ_DIV.      				*/
+	uint32_t Q;								/*!< This determines the division factor Q of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLLQ_DIV.      						*/
 
-	uint32_t P;								/*!< This determines the division factor P of the PLL.
-	                                      	  	  	  This parameter can be a value of @ref RCC_PLLP_DIV.      				*/
+	uint32_t P;								/*!< This determines the division factor P of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLLP_DIV.	      					*/
 
-	uint32_t N;								/*!< This determines the division factor N of the PLL.
-	                                      	  	  	  This parameter can be a value of @ref RCC_PLLN_DIV.      				*/
+	uint32_t N;								/*!< This determines the division factor N of the PLL clock.
+	                                      	  	  	  This parameter must be equal to or between 50 or 432. 		     			*/
 
-	uint32_t M;								/*!< This determines the division factor M of the PLL.
-	                                      	  	  	  This parameter may be equal to or between 50 or 432.    				*/
+	uint32_t M;								/*!< This determines the division factor M of the PLL clock.
+	                                      	  	  	  This parameter must be equal to or between 2 or 63.    						*/
 
 	uint32_t HSEFreq;						/*!< Entering the correct HSE frequency enables PLL_JITTER to be activated.
-	                                      	  	  	  This parameter may be equal to or between 4 or 26.       				*/
+	                                      	  	  	  The HSE clock frequency must be equal to or between 4 or 26.       			*/
 
-	uint32_t Jitter;						/*!< This allows to select the state of the pll jitter.
-	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_JITTER.     			    */
+	uint32_t Jitter;						/*!< This allows to select the state of the pll jitter. When PLL Jitter is activated,
+												 PLL_M value -> PLL input clock frequency (HSE or HSI frequency) / 2 is changed.
+	 	 	 	 	 	 	 	 	 	 	 	 The user should be aware of this when calculating the system clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_JITTER.     		    		*/
 
 }PLL_InitTypeDef;
 
-/*
- * RCC System Clock Configuration
- */
+
+/**
+  * @brief  Initializes the CPU, AHB and APB busses clocks according to the specified
+  *         parameters in the RCC_ClkInitStruct.
+  * @param  RCC_ClkInitStruct pointer to an RCC_OscInitTypeDef structure that
+  *         contains the configuration information for the RCC peripheral.
+  * @param  FLatency FLASH Latency, this parameter depend on device selected
+  *
+  * @note   The SystemCoreClock CMSIS variable is used to store System Clock Frequency
+  *         and updated by HAL_RCC_GetHCLKFreq() function called within this function
+  *
+  * @retval None
+  */
 typedef struct
 {
-	uint32_t SYSCLKSource;					/*!< This determines the source of the System clock.
+	uint32_t SYSCLKSource;					/*!< This determines the source of the system clock.
 	                                      	  	  	  	  This parameter can be a value of @ref RCC_SYSCLK_SRC      */
 
 	uint32_t HSEBypass;						/*!< The new state of the HSE.
 	                                      	  	  	  	  This parameter can be a value of @ref RCC_HSE_SRC      	*/
 
-	uint32_t HSECSSONState;					/*!< This activates the Clock Security System for the HSE oscillator
+	uint32_t HSECSSONState;					/*!< This activates the clock security system for the HSE oscillator
 	                                      	  	  	  	  This parameter can be a value of @ref RCC_HSE_CSSON     	*/
 
-	uint32_t HSICalibrationValue;
+	uint32_t HSICalibrationValue;			/*!< This allows the calibration value to be written to the HSITRIM[4:0] register, this value must be equal to 0 or 32.
+	                                      	  	  	  	  By default HSITRIM[4:0] = 0x10. See AN5067 for detailed calibration information 	*/
 
 	PLL_InitTypeDef PLL;					/*!< If PLL is selected as the system clock, PLL setting is made with this expression
 		                                      	  	  	  This parameter can be a value of @ref RCC_PLL_CONFIG      */
-
-	RCC_StatusTypeDef OscStateFlag;			/*!< The new state of the HSE.
-	                                      	  	  	  	  	This parameter can be a value of @ref clock_source      */
 
 	uint32_t PowerSavingMode;				/*!< The new state of the HSE.
 	                                      	  	  	  Bu parametre enable olduğunda güç tasarufu yapmak için kullanılmayan saatler devre dışı bırakılır
@@ -297,6 +301,9 @@ typedef struct
 	 	 	 	 	 	 	 	 	uint32_t PowerSavingMode = HSE_POWER_SAVE | HSI_POWER_SAVE;
 	 	 	 	 	 	 	 	 		Yukardaki durumda HSE ve HSI kapatılır diğer saatlerin durumu korunur
 	 	 */
+
+	RCC_OscStatusTypeDef OscState;			/*!< The new state of the HSE.
+	                                      	  	  	  	  	This parameter can be a value of @ref clock_source      */
 
 }RCC_SysClkInitTypeDef;
 

@@ -2,6 +2,13 @@
 #define MAIN_H_
 
 /*
+ * 	Standart Library's
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+
+/*
  *  Common Library Data Type
  */
 typedef enum

@@ -4,13 +4,13 @@
  * 		Interrupt Handler
  */
 
-//extern RCC_SysClkInitTypeDef r_obj;
+extern RCC_SysClkInitTypeDef SysClk;		//SysClk değişkeni main dosyasından extern edilir.
 
 
-//void RCC_IRQHandler(void)
-//{
-//	//RCC_Handler(&r_obj);
-//}
+void RCC_IRQHandler(void)
+{
+	RCC_Handler(&SysClk);
+}
 
 
 /*

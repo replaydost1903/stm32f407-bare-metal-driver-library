@@ -2,7 +2,7 @@
 "./Drivers/Bare-Metal-Driver-Library/Src/stm32f407_rcc.o"
 "./Drivers/CMSIS/Device/Src/system_stm32f4xx.o"
 "./Src/interrupt.o"
-"./Src/rrc_driver_essay.o"
+"./Src/rcc_driver_essay.o"
 "./Src/syscalls.o"
 "./Src/sysmem.o"
 "./Startup/startup_stm32f407vgtx.o"
