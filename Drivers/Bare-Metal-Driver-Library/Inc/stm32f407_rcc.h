@@ -3,6 +3,14 @@
 
 #include "main.h"
 
+
+/*
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ * Güç tasarruf modunda işlemcinin güç tüketimi ve çektiği akımlar karşılaştırılacak
+ * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ */
+
+
 #define __SYS_CLK_HSI_SELECT__()						do														\
 														{														\
 															RCC->CFGR |= RCC_CFGR_SW_HSI;						\
@@ -23,6 +31,7 @@
 															RCC->CR |= RCC_CR_HSION;							\
 														}while((RCC->CR & RCC_CR_HSIRDY) != RCC_CR_HSIRDY);
 
+
 #define __HSE_ENABLE__()								do														\
 														{														\
 															RCC->CR |= RCC_CR_HSEON;							\
@@ -33,6 +42,16 @@
 															RCC->CR |= RCC_CR_PLLON;							\
 														}while((RCC->CR & RCC_CR_PLLRDY) != RCC_CR_PLLRDY);
 
+
+#define __HSI_DISABLE()									((RCC->CR 	&= ~(0x1U << RCC_CR_HSION_Pos)))
+
+#define __HSE_DISABLE()									((RCC->CR 	&= ~(0x1U << RCC_CR_HSEON_Pos)))
+
+#define __LSI_DISABLE()									((RCC->CSR 	&= ~(0x1U << RCC_CSR_LSION_Pos)))
+
+#define __LSE_DISABLE()									((RCC->BDCR &= ~(0x1U << RCC_BDCR_LSEON_Pos)))
+
+#define __PLL_DISABLE()									((RCC->CR 	&= ~(0x1U << RCC_CR_PLLON_Pos)))
 
 /*
  * 	@ref RCC_SYSCLK_SRC
@@ -132,8 +151,14 @@
 #define RCC_MCO1							(1U)
 #define RCC_MCO2							(2U)
 
-
-
+/*
+ * @ref RCC_POWER_SAVE
+ */
+#define RCC_HSI_POWER_SAVE					(1U)
+#define RCC_HSE_POWER_SAVE					(2U)
+#define RCC_LSI_POWER_SAVE					(4U)
+#define RCC_LSE_POWER_SAVE					(8U)
+#define RCC_PLL_POWER_SAVE					(16U)
 
 
 
@@ -202,7 +227,7 @@
 //}Sys_PresValue;
 
 /*
- *  @rcc_int_flag
+ *  @RCC_OSC_FLAG
  */
 typedef struct
 {
@@ -291,87 +316,26 @@ typedef struct
 	PLL_InitTypeDef PLL;					/*!< If PLL is selected as the system clock, PLL setting is made with this expression
 		                                      	  	  	  This parameter can be a value of @ref RCC_PLL_CONFIG      */
 
-	uint32_t PowerSavingMode;				/*!< The new state of the HSE.
-	                                      	  	  	  Bu parametre enable olduğunda güç tasarufu yapmak için kullanılmayan saatler devre dışı bırakılır
-	 eğer sistemde kullanılan saat varsa örneğin LSE , bu saat devre dışı bırakılmayacaksa yazılmamalıdır
+	uint32_t PowerSavingMode;				/*!< This parameter allows the user to disable the clocks that are not used in the system to save power.
+													If the user disables the clocks used to save power, the Hard_Fault handler interrupts.
+	 	 	 	 	 	 	 	 						  This parameter can be a value of @ref RCC_POWER_SAVE */
 
-	 	 	 Örnek kullanım	:
-	 	 	 	 	 	 -> 		HSE_POWER_SAVE		->		Parametre
-	 	 	 	 	 	 	 	 	HSI_POWER_SAVE		->		Parametre
-	 	 	 	 	 	 	 	 	LSE_POWER_SAVE		->		Parametre
-	 	 	 	 	 	 	 	 	LSI_POWER_SAVE		->		Parametre
-
-	 	 	 	 	 	 	 	 	uint32_t PowerSavingMode = HSE_POWER_SAVE | HSI_POWER_SAVE;
-	 	 	 	 	 	 	 	 		Yukardaki durumda HSE ve HSI kapatılır diğer saatlerin durumu korunur
-	 	 */
-
-	RCC_OscStatusTypeDef OscState;			/*!< The new state of the HSE.
-	                                      	  	  	  	  	This parameter can be a value of @ref clock_source      */
+	RCC_OscStatusTypeDef OscState;			/*!< This parameter is contained in the RCC_Handler function and provides information to the user about
+	 	 	 	 	 	 	 	 	 	 	 	 	 whether the oscillators are initialised properly.
+	 	 	 	 	 	 	 	 	 	 	 	 	 Caution : Since HSI is already internally initialised in the system, it is not in the READY state in the interrupt flag.
+	 	 	 	 	 	 	 	 	 	 	 	  	 If the user changes the system oscillator source, switches off the HSI and restarts it, it returns to the READY state.
+	 	 	 	 	 	 	 	 	 	 	 	 	 	 This parameter can be a value of @ref RCC_OSC_FLAG      */
 
 }RCC_SysClkInitTypeDef;
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-/* RCC -> Clock Section */
 void System_Init(void);
 StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef*);
 void RCC_Handler(RCC_SysClkInitTypeDef*);
 void MCO_Output(uint32_t,uint32_t,uint32_t);
 //StatusFlagTypeDef System_Clock_Init(RCC_Handle_TypeDef *);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
- *  Reset Section
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -20,6 +20,7 @@ const uint32_t HSI_OSC_FREQ = 16;
  */
 static void RCC_HSIConfig(uint32_t);
 static void RCC_HSEConfig(uint32_t,uint32_t);
+static void RCC_PowerSaveConfig(uint32_t);
 static void MCO1_GPIO_Init(void);
 static void MCO2_GPIO_Init(void);
 
@@ -88,6 +89,8 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 
 		__SYS_CLK_HSI_SELECT__();
 
+		RCC_PowerSaveConfig(pRCC_SysClk->PowerSavingMode);
+
 		return OK;
 	}
 	/************************* 2.HSE selected as system clock ****************************/
@@ -96,6 +99,8 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 		RCC_HSEConfig(pRCC_SysClk->HSEBypass,pRCC_SysClk->HSECSSONState);
 
 		__SYS_CLK_HSE_SELECT__();
+
+		RCC_PowerSaveConfig(pRCC_SysClk->PowerSavingMode);
 
 		return OK;
 	}
@@ -149,6 +154,8 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 
 						System_Clock_Freq = (vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U))));
 
+						RCC_PowerSaveConfig(pRCC_SysClk->PowerSavingMode);
+
 						return OK;
 					}
 					else
@@ -183,6 +190,8 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 						vco_out =  ((double)vco_in * (double)((RCC->PLLCFGR & 0x7FC0) >> 6U));
 
 						System_Clock_Freq = (double)vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
+
+						RCC_PowerSaveConfig(pRCC_SysClk->PowerSavingMode);
 
 						return OK;
 					}
@@ -248,6 +257,8 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 
 						System_Clock_Freq = (vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U))));
 
+						RCC_PowerSaveConfig(pRCC_SysClk->PowerSavingMode);
+
 						return OK;
 					}
 					else
@@ -283,6 +294,8 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 
 						System_Clock_Freq = (double)vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
 
+						RCC_PowerSaveConfig(pRCC_SysClk->PowerSavingMode);
+
 						return OK;
 					}
 					else
@@ -297,6 +310,7 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 			}
 		}
 	}
+
 	return ERROR;
 }
 
@@ -535,7 +549,47 @@ static void MCO2_GPIO_Init(void)
 	// PC9 AF0 Config
 	GPIOC->AFR[1] |= (0U << GPIO_AFRH_AFSEL9_Pos);
 }
+static void RCC_PowerSaveConfig(uint32_t RCC_PowerSave)
+{
+	/* Power Save Section */
+	uint32_t mask = 0;
 
+	for(uint8_t ind = 1;ind < 0x0FU;ind = ind << 1U)
+	{
+		mask = (ind & RCC_PowerSave);
+
+		switch(mask)
+		{
+			case (RCC_HSI_POWER_SAVE):
+			{
+				__HSI_DISABLE();
+				break;
+			}
+			case (RCC_HSE_POWER_SAVE):
+			{
+				__HSE_DISABLE();
+				break;
+			}
+			case (RCC_LSI_POWER_SAVE):
+			{
+				__LSI_DISABLE();
+				break;
+			}
+			case (RCC_LSE_POWER_SAVE):
+			{
+				__LSE_DISABLE();
+				break;
+			}
+			case (RCC_PLL_POWER_SAVE):
+			{
+				__PLL_DISABLE();
+				break;
+			}
+			default:
+				break;
+		}
+	}
+}
 
 
 

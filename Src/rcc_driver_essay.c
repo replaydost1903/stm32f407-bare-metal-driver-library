@@ -28,14 +28,15 @@ int main()
 
 static void System_Clock_Init()
 {
-	SysClk.SYSCLKSource = SYSCLK_SRC_HSE;
+	SysClk.SYSCLKSource = SYSCLK_SRC_PLL;
 	SysClk.HSEBypass = HSE_NOT_BYPASS;
 	SysClk.HSECSSONState = HSE_CSSON_ON;
-	SysClk.PLL.Source = PLL_SRC_HSI;
+	SysClk.PowerSavingMode = RCC_HSI_POWER_SAVE;
+	SysClk.PLL.Source = PLL_SRC_HSE;
 	SysClk.PLL.HSEFreq = 8;
 	SysClk.PLL.Jitter = PLL_JITTER_OFF;
-	SysClk.PLL.M = 16;
-	SysClk.PLL.N = 168;
+	SysClk.PLL.M = 4;
+	SysClk.PLL.N = 8;
 	SysClk.PLL.P = PLL_P_DIV2;
 
 	if((RCC_SysClkInit(&SysClk) != OK))
