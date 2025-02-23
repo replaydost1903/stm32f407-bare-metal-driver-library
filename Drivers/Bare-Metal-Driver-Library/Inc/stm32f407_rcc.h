@@ -3,12 +3,10 @@
 
 #include "main.h"
 
-
-/*
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- * Güç tasarruf modunda işlemcinin güç tüketimi ve çektiği akımlar karşılaştırılacak
- * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- */
+extern double System_Clock_Freq;
+extern double System_HCLK_Freq;
+extern double System_APB1_Freq;
+extern double System_APB2_Freq;
 
 
 #define __SYS_CLK_HSI_SELECT__()						do														\
@@ -160,71 +158,55 @@
 #define RCC_LSE_POWER_SAVE					(8U)
 #define RCC_PLL_POWER_SAVE					(16U)
 
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * @ref RCC_AHB_DIV
+ */
+#define RCC_AHB_DIV_1						(RCC_CFGR_HPRE_DIV1)
+#define RCC_AHB_DIV_2						(RCC_CFGR_HPRE_DIV2)
+#define RCC_AHB_DIV_4						(RCC_CFGR_HPRE_DIV4)
+#define RCC_AHB_DIV_8						(RCC_CFGR_HPRE_DIV8)
+#define RCC_AHB_DIV_16						(RCC_CFGR_HPRE_DIV16)
+#define RCC_AHB_DIV_64						(RCC_CFGR_HPRE_DIV64)
+#define RCC_AHB_DIV_128						(RCC_CFGR_HPRE_DIV128)
+#define RCC_AHB_DIV_256						(RCC_CFGR_HPRE_DIV256)
+#define RCC_AHB_DIV_512						(RCC_CFGR_HPRE_DIV512)
 
 /*
- * @ahb_prescaler_value
+ * @ref RCC_ABP1_DIV
  */
-#define AHB_PRESCALER_1					(0U)
-#define AHB_PRESCALER_2					(8U)
-#define AHB_PRESCALER_4					(9U)
-#define AHB_PRESCALER_8					(10U)
-#define AHB_PRESCALER_16				(11U)
-#define AHB_PRESCALER_64				(12U)
-#define AHB_PRESCALER_128				(13U)
-#define AHB_PRESCALER_256				(14U)
-#define AHB_PRESCALER_512				(15U)
+#define RCC_APB1_DIV_1						(RCC_CFGR_PPRE1_DIV1)
+#define RCC_APB1_DIV_2						(RCC_CFGR_PPRE1_DIV2)
+#define RCC_APB1_DIV_4						(RCC_CFGR_PPRE1_DIV4)
+#define RCC_APB1_DIV_8						(RCC_CFGR_PPRE1_DIV8)
+#define RCC_APB1_DIV_16						(RCC_CFGR_PPRE1_DIV16)
 
 /*
- * @apb1_prescaler_value
+ * @ref RCC_ABP2_DIV
  */
-#define APB1_PRESCALER_1				(0U)
-#define APB1_PRESCALER_2				(4U)
-#define APB1_PRESCALER_4				(5U)
-#define APB1_PRESCALER_8				(6U)
-#define APB1_PRESCALER_16				(7U)
+#define RCC_APB2_DIV_1						(RCC_CFGR_PPRE2_DIV1)
+#define RCC_APB2_DIV_2						(RCC_CFGR_PPRE2_DIV2)
+#define RCC_APB2_DIV_4						(RCC_CFGR_PPRE2_DIV4)
+#define RCC_APB2_DIV_8						(RCC_CFGR_PPRE2_DIV8)
+#define RCC_APB2_DIV_16						(RCC_CFGR_PPRE2_DIV16)
 
 /*
- * @apb2_prescaler_value
+ * @RCC_SYS_BUS_INIT
  */
-#define APB1_PRESCALER_1				(0U)
-#define APB2_PRESCALER_2				(4U)
-#define APB2_PRESCALER_4				(5U)
-#define APB2_PRESCALER_8				(6U)
-#define APB2_PRESCALER_16				(7U)
+typedef struct
+{
+	uint32_t SYSCLKSource;				/*!< This determines the source of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_AHB_DIV. <!*/
 
+	uint32_t AHBPrescaler;				/*!< This determines the source of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_SRC. <!*/
 
+	uint32_t APB1Prescaler;				/*!< This determines the source of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_SRC. <!*/
 
+	uint32_t APB2Prescaler;				/*!< This determines the source of the PLL clock.
+	                                      	  	  	  This parameter can be a value of @ref RCC_PLL_SRC.  <!*/
 
-
-
-
-
-
-
-///*
-// * @system_clock_prescaler
-// */
-//typedef struct
-//{
-//	uint8_t ahb_pres;				/*<!		@ahb_prescaler_value		!>*/
-//
-//	uint8_t apb1_pres;				/*<!		@apb2_prescaler_value		!>*/
-//
-//	uint8_t apb2_pres;				/*<!		@apb2_prescaler_value		!>*/
-//
-//}Sys_PresValue;
+}RCC_SysBusInitTypeDef;
 
 /*
  *  @RCC_OSC_FLAG
@@ -248,16 +230,7 @@ typedef struct
 }RCC_OscStatusTypeDef;
 
 /**
-  * @brief  Initializes the CPU, AHB and APB busses clocks according to the specified
-  *         parameters in the RCC_ClkInitStruct.
-  * @param  RCC_ClkInitStruct pointer to an RCC_OscInitTypeDef structure that
-  *         contains the configuration information for the RCC peripheral.
-  * @param  FLatency FLASH Latency, this parameter depend on device selected
   *
-  * @note   The SystemCoreClock CMSIS variable is used to store System Clock Frequency
-  *         and updated by HAL_RCC_GetHCLKFreq() function called within this function
-  *
-  * @retval None
   */
 typedef struct
 {
@@ -276,9 +249,6 @@ typedef struct
 	uint32_t M;								/*!< This determines the division factor M of the PLL clock.
 	                                      	  	  	  This parameter must be equal to or between 2 or 63.    						*/
 
-	uint32_t HSEFreq;						/*!< Entering the correct HSE frequency enables PLL_JITTER to be activated.
-	                                      	  	  	  The HSE clock frequency must be equal to or between 4 or 26.       			*/
-
 	uint32_t Jitter;						/*!< This allows to select the state of the pll jitter. When PLL Jitter is activated,
 												 PLL_M value -> PLL input clock frequency (HSE or HSI frequency) / 2 is changed.
 	 	 	 	 	 	 	 	 	 	 	 	 The user should be aware of this when calculating the system clock.
@@ -288,16 +258,7 @@ typedef struct
 
 
 /**
-  * @brief  Initializes the CPU, AHB and APB busses clocks according to the specified
-  *         parameters in the RCC_ClkInitStruct.
-  * @param  RCC_ClkInitStruct pointer to an RCC_OscInitTypeDef structure that
-  *         contains the configuration information for the RCC peripheral.
-  * @param  FLatency FLASH Latency, this parameter depend on device selected
   *
-  * @note   The SystemCoreClock CMSIS variable is used to store System Clock Frequency
-  *         and updated by HAL_RCC_GetHCLKFreq() function called within this function
-  *
-  * @retval None
   */
 typedef struct
 {
@@ -330,14 +291,14 @@ typedef struct
 
 
 
-
+/*
+ * RCC Section Function Declarations
+ */
 void System_Init(void);
 StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef*);
 void RCC_Handler(RCC_SysClkInitTypeDef*);
 void MCO_Output(uint32_t,uint32_t,uint32_t);
-//StatusFlagTypeDef System_Clock_Init(RCC_Handle_TypeDef *);
-
-
+StatusFlagTypeDef RCC_SysBusInit(RCC_SysBusInitTypeDef *);
 
 
 

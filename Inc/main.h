@@ -9,6 +9,14 @@
 #include <stddef.h>
 
 /*
+ *  Example usage 	:
+ *  	READ_BIT(RCC->CR,RCC_CR_HSIRDY_Pos)
+ */
+#define READ_BIT(REG,BIT)							((((REG) >> (BIT)) & (0x1U)))
+#define SET_BIT(REG,BIT)							((REG = ((((0x1U << (BIT)) | REG)))))
+#define CLEAR_BIT(REG,BIT)							((REG = (((~(0x1U << (BIT))) & REG))))
+
+/*
  *  Common Library Data Type
  */
 typedef enum
