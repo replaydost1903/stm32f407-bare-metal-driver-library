@@ -20,6 +20,8 @@ const uint32_t HSI_OSC_FREQ = 16;
  */
 static void RCC_HSIConfig(uint32_t);
 static void RCC_HSEConfig(uint32_t,uint32_t);
+static void MCO1_GPIO_Init(void);
+static void MCO2_GPIO_Init(void);
 
 
 //AHB Prescaler Value
@@ -49,6 +51,12 @@ void System_Init(void)
 	/* Enable Interrupt and Exception */
 	__NVIC_EnableIRQ(RCC_IRQn);
 	__NVIC_EnableIRQ(NonMaskableInt_IRQn);
+	__NVIC_EnableIRQ(MemoryManagement_IRQn);
+	__NVIC_EnableIRQ(BusFault_IRQn);
+	__NVIC_EnableIRQ(UsageFault_IRQn);
+	__NVIC_EnableIRQ(SVCall_IRQn);
+	__NVIC_EnableIRQ(DebugMonitor_IRQn);
+	__NVIC_EnableIRQ(PendSV_IRQn);
 }
 
 
@@ -109,7 +117,7 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 				RCC->CIR |= RCC_CIR_PLLRDYIE;
 
 				//It is recommended to select a frequency of 2 MHz to limit PLL jitter ---> RM Page 227
-				if(pRCC_SysClk->PLL.Jitter == PLL_JIT_ON)
+				if(pRCC_SysClk->PLL.Jitter == PLL_JITTER_ON)
 				{
 					//Calculates limit condition value and system oscillator frequency
 					vco_in = 2;
@@ -148,7 +156,7 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 						return ERROR;
 					}
 				}
-				else if(pRCC_SysClk->PLL.Jitter == PLL_JIT_OFF)			//Not PLL Jitter Configuration
+				else if(pRCC_SysClk->PLL.Jitter == PLL_JITTER_OFF)			//Not PLL Jitter Configuration
 				{
 					vco_in = ((double)pRCC_SysClk->PLL.HSEFreq / (double)pRCC_SysClk->PLL.M);
 
@@ -191,44 +199,97 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 		}
 		else if((pRCC_SysClk->PLL.Source == PLL_SRC_HSI))
 		{
+
+			//VCO Limit Control
+			double vco_in,vco_out;
+
 			//HSI Ready Interrupt Enable
 			RCC->CIR |= RCC_CIR_HSIRDYIE;
 
-			//PLL Ready Interrupt Enable
-			RCC->CIR |= RCC_CIR_PLLRDYIE;
+			//HSE Enable
+			RCC_HSIConfig(pRCC_SysClk->HSICalibrationValue);
 
-			__HSI_ENABLE__();
-
-			//VCO Limit Control
-			uint32_t vco_in,vco_out;
-
-			vco_in = (uint32_t)((uint32_t)(HSI_OSC_FREQ) / (uint32_t)pRCC_SysClk->PLL.M);
-
-			vco_out = (uint32_t)((uint32_t)vco_in * (uint32_t)pRCC_SysClk->PLL.N);
-
-			System_Clock_Freq = (uint32_t)((uint32_t)vco_out / (uint32_t)PLL_P_COEFF_CAL_R(pRCC_SysClk->PLL.P));
-
-			//Before Calculate Check VCOUT Limit
-			if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))
+			//PLL Coefficient and VCO Limit Control
+			if(__PLL_COEFF_CONTROL__(pRCC_SysClk))
 			{
-		        /* Configure the main PLL clock source, multiplication and division factors. */
-				RCC->PLLCFGR = (uint32_t)(pRCC_SysClk->PLL.M << RCC_PLLCFGR_PLLM_Pos) 	|\
-										 (pRCC_SysClk->PLL.N << RCC_PLLCFGR_PLLN_Pos) 	|\
-										 ((pRCC_SysClk->PLL.P) << RCC_PLLCFGR_PLLP_Pos) |\
-										 (RCC_PLLCFGR_PLLSRC_HSI);
+				//PLL Ready Interrupt Enable
+				RCC->CIR |= RCC_CIR_PLLRDYIE;
 
-				__PLL_ENABLE__();
+				//It is recommended to select a frequency of 2 MHz to limit PLL jitter ---> RM Page 227
+				if(pRCC_SysClk->PLL.Jitter == PLL_JITTER_ON)
+				{
+					//Calculates limit condition value and system oscillator frequency
+					vco_in = 2;
 
-				__SYS_CLK_PLL_SELECT__();
+					vco_out = (vco_in * (double)pRCC_SysClk->PLL.N);
 
-				//Last Regulated System Master Clock Value
-				vco_in = ((uint32_t)((HSI_OSC_FREQ) / (uint32_t)(RCC->PLLCFGR & 0x3F)));
+					System_Clock_Freq = (vco_out / (double)(PLL_P_COEFF_CAL_R(pRCC_SysClk->PLL.P)));
 
-				vco_out =  (uint32_t)((uint32_t)vco_in * (uint32_t)((RCC->PLLCFGR & 0x7FC0) >> 6U));
+					//Before Calculate Check VCOUT Limit
+					if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))	//With PLL Jitter Configuration
+					{
+						//PLLM Calculated
+						pRCC_SysClk->PLL.M = (uint32_t)((double)HSI_OSC_FREQ / vco_in); 	//VCO --> 2MHz
 
-				System_Clock_Freq = vco_out / (PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
+				        /* Configure the main PLL clock source, multiplication and division factors. */
+						RCC->PLLCFGR = (uint32_t)(pRCC_SysClk->PLL.M << RCC_PLLCFGR_PLLM_Pos) | \
+												 (pRCC_SysClk->PLL.N << RCC_PLLCFGR_PLLN_Pos) | \
+												 (pRCC_SysClk->PLL.P << RCC_PLLCFGR_PLLP_Pos) | \
+												 (RCC_PLLCFGR_PLLSRC_HSI);
 
-				return OK;
+						__PLL_ENABLE__();
+
+						__SYS_CLK_PLL_SELECT__();
+
+						//Last Regulated System Master Clock Value
+						vco_in = (((double)HSI_OSC_FREQ / (double)(RCC->PLLCFGR & 0x3F)));
+
+						vco_out =  ((double)vco_in * (double)((RCC->PLLCFGR & 0x7FC0) >> 6U));
+
+						System_Clock_Freq = (vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U))));
+
+						return OK;
+					}
+					else
+					{
+						return ERROR;
+					}
+				}
+				else if(pRCC_SysClk->PLL.Jitter == PLL_JITTER_OFF)			//Not PLL Jitter Configuration
+				{
+					vco_in = ((double)HSI_OSC_FREQ / (double)pRCC_SysClk->PLL.M);
+
+					vco_out = ((double)vco_in * (double)pRCC_SysClk->PLL.N);
+
+					System_Clock_Freq = ((double)vco_out / (double)PLL_P_COEFF_CAL_R(pRCC_SysClk->PLL.P));
+
+					//Before Calculate Check VCOUT Limit
+					if((vco_out >= 100) & (vco_out <= 432) & (System_Clock_Freq <= 168))
+					{
+				        /* Configure the main PLL clock source, multiplication and division factors. */
+						RCC->PLLCFGR = (uint32_t)(pRCC_SysClk->PLL.M << RCC_PLLCFGR_PLLM_Pos) 	|\
+												 (pRCC_SysClk->PLL.N << RCC_PLLCFGR_PLLN_Pos) 	|\
+												 ((pRCC_SysClk->PLL.P) << RCC_PLLCFGR_PLLP_Pos) |\
+												 (RCC_PLLCFGR_PLLSRC_HSI);
+
+						__PLL_ENABLE__();
+
+						__SYS_CLK_PLL_SELECT__();
+
+						//Last Regulated System Master Clock Value
+						vco_in = (((double)HSI_OSC_FREQ / (double)(RCC->PLLCFGR & 0x3F)));
+
+						vco_out =  ((double)vco_in * (double)((RCC->PLLCFGR & 0x7FC0) >> 6U));
+
+						System_Clock_Freq = (double)vco_out / (double)(PLL_P_COEFF_CAL_R(((RCC->PLLCFGR & 0x30000) >> 16U)));
+
+						return OK;
+					}
+					else
+					{
+						return ERROR;
+					}
+				}
 			}
 			else
 			{
@@ -239,67 +300,38 @@ StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef *pRCC_SysClk)
 	return ERROR;
 }
 
-///*
-// *  @note : The desired oscillator source must be activated before setting the MCO
-// */
-//void MCO_Output(RCC_Handle_TypeDef *pRCC)
-//{
-//	if(pRCC->mco_out.mco_out_mode == MCO_MODE_1_ENABLE)
-//	{
-//		// GPIOA Clock Enable
-//		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-//
-//		// PA8 AF Mode
-//		GPIOA->MODER |= 0x02 << GPIO_MODER_MODER8_Pos;
-//
-//		// PA8 AF0 Config
-//		GPIOA->AFR[1] |= (0U << GPIO_AFRH_AFSEL8_Pos);
-//
-//		// MCO1 Prescaler Configuration
-//		RCC->CFGR |= (pRCC->mco_out.mco1_pres << RCC_CFGR_MCO1PRE_Pos);
-//
-//		// MCO1 Source Config
-//		RCC->CFGR |= (pRCC->mco_out.mco1 << RCC_CFGR_MCO1_Pos);
-//	}
-//	else if(pRCC->mco_out.mco_out_mode == MCO_MODE_2_ENABLE)
-//	{
-//		// GPIOC Clock Enable
-//		RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
-//
-//		// PC9 AF Mode
-//		GPIOC->MODER |= 0x02 << GPIO_MODER_MODER9_Pos;
-//
-//		// PC9 AF0 Config
-//		GPIOC->AFR[1] |= (0U << GPIO_AFRH_AFSEL9_Pos);
-//
-//		// MCO2 Prescaler Configuration
-//		RCC->CFGR |= (pRCC->mco_out.mco2_pres << RCC_CFGR_MCO2PRE_Pos);
-//
-//		// MCO2 Source Config
-//		RCC->CFGR |= (pRCC->mco_out.mco2 << RCC_CFGR_MCO2_Pos);
-//	}
-//	else if(pRCC->mco_out.mco_out_mode == MCO_ALL_MODE_ENABLE)
-//	{
-//		//	PA8 -> MCO_1 Pin Out AF Mode | PC9 -> MCO_2 Pin Out AF Mode
-//
-//		// GPIOA Clock Enable
-//		RCC->AHB1ENR |= (RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN);
-//
-//		// PA8 & PC9 AF Mode
-//		GPIOA->MODER |= (0x02 << GPIO_MODER_MODER8_Pos);
-//		GPIOC->MODER |= (0x02 << GPIO_MODER_MODER9_Pos);
-//
-//		// PA8 & PC9 AF0 Config
-//		GPIOA->AFR[1] |= (0U << GPIO_AFRH_AFSEL8_Pos);
-//		GPIOC->AFR[1] |= (0U << GPIO_AFRH_AFSEL9_Pos);
-//
-//		// MCO1 & MCO2 Prescaler Configuration
-//		RCC->CFGR |= (pRCC->mco_out.mco1_pres << RCC_CFGR_MCO1PRE_Pos) | (pRCC->mco_out.mco2_pres << RCC_CFGR_MCO2PRE_Pos);
-//
-//		// MCO1 & MCO2 Source Config
-//		RCC->CFGR |= (pRCC->mco_out.mco1 << RCC_CFGR_MCO1_Pos) | (pRCC->mco_out.mco2 << RCC_CFGR_MCO2_Pos);
-//	}
-//}
+/*
+ *  @note : The desired oscillator source must be activated before setting the MCO
+ */
+void MCO_Output(uint32_t MCOx,uint32_t MCOSource,uint32_t MCOPrescaler)
+{
+	uint32_t mask;
+
+	if(MCOx == RCC_MCO1)
+	{
+		MCO1_GPIO_Init();
+
+		mask = ((MCOPrescaler | MCOSource) & 0x7600000UL);
+
+		RCC->CFGR |= mask;
+	}
+	else if(MCOx == RCC_MCO2)
+	{
+		MCO2_GPIO_Init();
+
+		mask = (RCC->CFGR & 0xF8000000UL);
+
+		mask &=	(MCOPrescaler | MCOSource);
+
+		RCC->CFGR |= mask;
+	}
+	else if(MCOx == (RCC_MCO1|RCC_MCO2))
+	{
+		MCO1_GPIO_Init();
+		MCO2_GPIO_Init();
+		RCC->CFGR |= (MCOPrescaler | MCOSource);
+	}
+}
 
 ///*
 // * System Oscilattor Configuration --> [SYSTEM_CLOCK]
@@ -481,7 +513,28 @@ static void RCC_HSEConfig(uint32_t RCC_HSEBypass,uint32_t RCC_HSECSSONState)
 }
 
 
+static void MCO1_GPIO_Init(void)
+{
+	// GPIOA Clock Enable
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
 
+	// PA8 AF Mode
+	GPIOA->MODER |= 0x02 << GPIO_MODER_MODER8_Pos;
+
+	// PA8 AF0 Config
+	GPIOA->AFR[1] |= (0U << GPIO_AFRH_AFSEL8_Pos);
+}
+static void MCO2_GPIO_Init(void)
+{
+	// GPIOC Clock Enable
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+
+	// PC9 AF Mode
+	GPIOC->MODER |= 0x02 << GPIO_MODER_MODER9_Pos;
+
+	// PC9 AF0 Config
+	GPIOC->AFR[1] |= (0U << GPIO_AFRH_AFSEL9_Pos);
+}
 
 
 

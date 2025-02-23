@@ -94,6 +94,45 @@
 #define PLL_JITTER_ON						(1U)
 
 
+/*
+ * @ref RCC_MCO1_SRC
+ */
+#define MCO1_SRC_HSI						(0x0000000U)
+#define MCO1_SRC_LSE						(0x1U << RCC_CFGR_MCO1_Pos)
+#define MCO1_SRC_HSE						(0x2U << RCC_CFGR_MCO1_Pos)
+#define MCO1_SRC_PLL						(0x3U << RCC_CFGR_MCO1_Pos)
+
+/*
+ * @ref RCC_MCO1_DIV
+ */
+#define MCO1_DIV_2							(0x4U << RCC_CFGR_MCO1PRE_Pos)
+#define MCO1_DIV_3							(0x5U << RCC_CFGR_MCO1PRE_Pos)
+#define MCO1_DIV_4							(0x6U << RCC_CFGR_MCO1PRE_Pos)
+#define MCO1_DIV_5							(0x7U << RCC_CFGR_MCO1PRE_Pos)
+
+/*
+ * @ref RCC_MCO2_SRC
+ */
+#define MCO2_SRC_SYSCLK						(0x0000000U)
+#define MCO2_SRC_PLLI2S						(0x1U << RCC_CFGR_MCO2_Pos)
+#define MCO2_SRC_HSE						(0x2U << RCC_CFGR_MCO2_Pos)
+#define MCO2_SRC_PLL						(0x3U << RCC_CFGR_MCO2_Pos)
+
+/*
+ * @ref RCC_MCO2_DIV
+ */
+#define MCO2_DIV_2							(0x4U << RCC_CFGR_MCO2PRE_Pos)
+#define MCO2_DIV_3							(0x5U << RCC_CFGR_MCO2PRE_Pos)
+#define MCO2_DIV_4							(0x6U << RCC_CFGR_MCO2PRE_Pos)
+#define MCO2_DIV_5							(0x7U << RCC_CFGR_MCO2PRE_Pos)
+
+/*
+ * @ref RCC_MCOx
+ */
+#define RCC_MCO1							(1U)
+#define RCC_MCO2							(2U)
+
+
 
 
 
@@ -140,59 +179,14 @@
 #define APB2_PRESCALER_8				(6U)
 #define APB2_PRESCALER_16				(7U)
 
-/*
- *  @mco_mode
- */
-#define MCO_MODE_1_ENABLE				(0U)
-#define MCO_MODE_2_ENABLE				(1U)
-#define MCO_ALL_MODE_ENABLE				(2U)
-
-/*
- *	@mco1_clk_src
- */
-#define MCO1_CLK_SRC_HSI				(0U)
-#define MCO1_CLK_SRC_LSE				(1U)
-#define MCO1_CLK_SRC_HSE				(2U)
-#define MCO1_CLK_SRC_PLL				(3U)
-
-/*
- *	@mco2_clk_src
- */
-#define MCO2_CLK_SRC_HSE				(0U)
-#define MCO2_CLK_SRC_PLL				(1U)
-#define MCO2_CLK_SRC_SYSCLK				(2U)
-#define MCO2_CLK_SRC_PLLI2S				(3U)
-
-/*
- *  @mco_prescaler
- */
-#define MCO_PRE_1						(0U)
-#define MCO_PRE_2						(4U)
-#define MCO_PRE_3						(5U)
-#define MCO_PRE_4						(6U)
-#define MCO_PRE_5						(7U)
-
-/*
- * @pll_jitter
- */
-#define PLL_JIT_OFF						(0U)
-#define PLL_JIT_ON						(1U)
 
 
 
-///*
-// * @mco_output
-// */
-//typedef struct
-//{
-//	uint8_t mco1;					/*<! 	@mco1_clk_src 			MCO1 Pin ->	PA8 !>*/
-//	uint8_t	mco2;					/*<! 	@mco2_clk_src 			MCO2 Pin ->	PC9 !>*/
-//	uint8_t mco1_pres;				/*<! 	@mco_prescaler							!>*/
-//	uint8_t mco2_pres;				/*<! 	@mco_prescaler							!>*/
-//	uint8_t mco_out_mode;			/*<! 	@mco_mode								!>*/
-//
-//
-//}MCO_ClkSrc;
+
+
+
+
+
 
 ///*
 // * @system_clock_prescaler
@@ -228,9 +222,18 @@ typedef struct
 
 }RCC_OscStatusTypeDef;
 
-/*
- * @ref RCC_PLL_CONFIG
- */
+/**
+  * @brief  Initializes the CPU, AHB and APB busses clocks according to the specified
+  *         parameters in the RCC_ClkInitStruct.
+  * @param  RCC_ClkInitStruct pointer to an RCC_OscInitTypeDef structure that
+  *         contains the configuration information for the RCC peripheral.
+  * @param  FLatency FLASH Latency, this parameter depend on device selected
+  *
+  * @note   The SystemCoreClock CMSIS variable is used to store System Clock Frequency
+  *         and updated by HAL_RCC_GetHCLKFreq() function called within this function
+  *
+  * @retval None
+  */
 typedef struct
 {
 	uint32_t Source;						/*!< This determines the source of the PLL clock.
@@ -324,10 +327,8 @@ typedef struct
 void System_Init(void);
 StatusFlagTypeDef RCC_SysClkInit(RCC_SysClkInitTypeDef*);
 void RCC_Handler(RCC_SysClkInitTypeDef*);
-//void MCO_Output(RCC_SysClkInitTypeDef*);
+void MCO_Output(uint32_t,uint32_t,uint32_t);
 //StatusFlagTypeDef System_Clock_Init(RCC_Handle_TypeDef *);
-
-
 
 
 
